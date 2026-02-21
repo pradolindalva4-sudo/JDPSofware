@@ -1,9 +1,13 @@
-
+ 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, , maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#020305">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
     <title>JDP SUPREME ARENA v13.5 - FINAL</title>
     <style>
         :root {
@@ -340,6 +344,20 @@
             isLocked = !isLocked;
             document.getElementById('lock-icon').innerText = isLocked ? '🔒' : '🔓';
         }
+           //REGISTRO DO SERVICE WORKER 
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').then(() => console.log("Nave pronta!"));
+            }
+
+            db.ref('cardapio_supreme').on('value', snap => {
+                const data = snap.val();
+                produtosGlobais = data ? Object.entries(data).map(([id, val]) => ({id, ...val})) : [];
+                renderizar();
+                // INÍCIO APÓS 10 SEGUNDOS (10000 ms)
+                setTimeout(() => {
+                    document.getElementById('loading-supreme').style.display = 'none';
+                }, 10000); 
+            });
     </script>
 </body>
 </html>
