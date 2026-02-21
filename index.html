@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JDP SUPREME ARENA v13.5 - FINAL</title>
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-red: #ff3333;
+            --gold: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --industrial-bg: #020202;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; outline: none; }
+
+        body {
+            background-color: var(--industrial-bg);
+            color: #fff; font-family: 'Arial Black', sans-serif;
+            margin: 0; height: 100vh; width: 100vw;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* TELA DE SETUP */
+        #setup-screen {
+            position: fixed; inset: 0; background: #000; z-index: 9000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 20px; text-align: center;
+        }
+
+        .setup-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;
+        }
+
+        .btn-upload {
+            background: #111; border: 2px solid #444; color: #fff;
+            padding: 12px; border-radius: 5px; cursor: pointer; font-size: 0.7rem;
+            transition: 0.3s;
+        }
+        .btn-upload:active { border-color: gold; }
+
+        .btn-start {
+            background: var(--gold); color: #000; border: none;
+            padding: 20px 50px; border-radius: 5px; font-weight: 900;
+            font-size: 1.3rem; cursor: pointer; margin-top: 20px;
+            box-shadow: 0 0 30px rgba(212,175,55,0.4);
+        }
+
+        /* ARENA DE JOGO */
+        #main-game { display: none; flex-direction: column; height: 100vh; }
+
+        #stadium {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            gap: 15px; padding: 10px; position: relative;
+        }
+
+        /* ARQUIBANCADAS DE VÍDEO */
+        .video-bleacher {
+            width: 18vw; height: 75vh; border: 4px solid #222;
+            background: #000; border-radius: 10px; overflow: hidden;
+            position: relative; box-shadow: 0 0 20px #000;
+        }
+        .video-bleacher video {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: grayscale(0.5) brightness(0.5); transition: 0.4s;
+        }
+        .video-bleacher.active { border-color: gold; box-shadow: 0 0 30px gold; }
+        .video-bleacher.active video { filter: grayscale(0) brightness(1.2); transform: scale(1.05); }
+
+        .side-label {
+            position: absolute; top: 10px; width: 100%; text-align: center;
+            font-size: 0.7rem; font-weight: 900; text-shadow: 2px 2px 0 #000;
+        }
+
+        /* TABULEIRO */
+        #board {
+            display: grid; grid-template-columns: repeat(8, 10.5vmin); grid-template-rows: repeat(8, 10.5vmin);
+            border: 6px solid #333; background: #000; box-shadow: 0 0 50px #000;
+        }
+        .square { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .square.dark { background: #0a0a0a; }
+        .square.light { background: #181818; }
+
+        .piece {
+            width: 85%; height: 85%; border-radius: 50%;
+            background-size: cover; border: 2px solid rgba(255,255,255,0.2);
+            position: relative; transition: 0.2s;
+        }
+        .piece.p1 { background-color: var(--neon-blue); box-shadow: 0 0 15px var(--neon-blue); }
+        .piece.p2 { background-color: var(--neon-red); box-shadow: 0 0 15px var(--neon-red); }
+        .piece.king::after { content: '👑'; font-size: 1.3rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        /* RESPLENDOR OURO */
+        .resplendor {
+            position: fixed; top: 0; left: -150%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,215,0,0.6), transparent);
+            z-index: 9500; pointer-events: none; transform: skewX(-30deg);
+        }
+        @keyframes sweep { 0% { left: -150%; } 100% { left: 200%; } }
+
+        /* CELEBRAÇÃO SUPREMA */
+        #celebration-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .chupa-text {
+            font-size: 2.8rem; font-weight: 900; color: #fff; text-align: center;
+            text-shadow: 0 0 20px gold, 3px 3px 0 #000;
+            animation: waveSea 2s infinite ease-in-out; margin-bottom: 20px;
+        }
+        @keyframes waveSea {
+            0%, 100% { transform: translateY(0) rotate(-5deg); }
+            50% { transform: translateY(-30px) rotate(5deg); }
+        }
+        .video-box { width: 85%; max-width: 450px; border: 6px solid gold; border-radius: 15px; overflow: hidden; }
+        #celebration-video { width: 100%; display: block; }
+
+        .player-bar {
+            height: 65px; background: #000; display: flex; align-items: center;
+            justify-content: space-between; padding: 0 20px; border-top: 2px solid #222;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TELA INICIAL -->
+    <div id="setup-screen">
+        <h1 style="color: gold; letter-spacing: 4px; margin-bottom: 5px;">JDP INDUSTRIAL</h1>
+        <p style="color: #555; font-size: 0.8rem; margin-bottom: 20px;">KERNEL v13.5 SUPREME</p>
+        
+        <div class="setup-grid">
+            <button class="btn-upload" onclick="document.getElementById('f1').click()">FOTO JOSÉ</button>
+            <button class="btn-upload" onclick="document.getElementById('f2').click()">FOTO ESPOSA</button>
+            <button class="btn-upload" onclick="document.getElementById('v1').click()">VÍDEO GOL JOSÉ</button>
+            <button class="btn-upload" onclick="document.getElementById('v2').click()">VÍDEO GOL ESPOSA</button>
+            <button class="btn-upload" style="grid-column: span 2; border-color: gold;" onclick="document.getElementById('v-crowd').click()">🎥 CARREGAR VÍDEO DA TORCIDA</button>
+        </div>
+
+        <button class="btn-start" onclick="startArena()">ENTRAR NA ARENA</button>
+
+        <input type="file" id="f1" hidden onchange="saveMedia(this, 'p1Img')">
+        <input type="file" id="f2" hidden onchange="saveMedia(this, 'p2Img')">
+        <input type="file" id="v1" hidden accept="video/*" onchange="saveMedia(this, 'p1Vid')">
+        <input type="file" id="v2" hidden accept="video/*" onchange="saveMedia(this, 'p2Vid')">
+        <input type="file" id="v-crowd" hidden accept="video/*" onchange="saveMedia(this, 'crowdVid')">
+    </div>
+
+    <!-- EFEITOS -->
+    <div class="resplendor" id="r1"></div>
+    <div class="resplendor" id="r2"></div>
+    <div class="resplendor" id="r3"></div>
+
+    <!-- JOGO -->
+    <div id="main-game">
+        <div class="player-bar">
+            <span style="color: var(--neon-red);">ESPOSA</span>
+            <span onclick="toggleLock()" style="cursor:pointer;" id="lock-icon">🔓</span>
+        </div>
+
+        <div id="stadium">
+            <div class="video-bleacher" id="bleacher-a">
+                <video id="vid-a" loop muted playsinline></video>
+                <div class="side-label" style="color: var(--neon-blue);">SETOR JOSÉ</div>
+            </div>
+
+            <div id="board"></div>
+
+            <div class="video-bleacher" id="bleacher-b">
+                <video id="vid-b" loop muted playsinline></video>
+                <div class="side-label" style="color: var(--neon-red);">SETOR ESPOSA</div>
+            </div>
+        </div>
+
+        <div class="player-bar">
+            <span style="color: var(--neon-blue);">SR. JOSÉ</span>
+            <span id="turn-txt" style="color: gold;">TURNO: JOSÉ</span>
+        </div>
+    </div>
+
+    <!-- CELEBRAÇÃO -->
+    <div id="celebration-overlay">
+        <div class="chupa-text">HAHAHAHA!<br>CHUPA BACA!<br>HAHAHAHA!</div>
+        <div class="video-box">
+            <video id="celebration-video" playsinline></video>
+        </div>
+    </div>
+
+    <script>
+        let turn = 'p1';
+        let boardState = [];
+        let selected = null;
+        let isLocked = false;
+        const DB_KEY = "JDP_SUPREME_FINAL";
+        let db = JSON.parse(localStorage.getItem(DB_KEY)) || { p1Img: '', p2Img: '', p1Vid: '', p2Vid: '', crowdVid: '' };
+
+        function saveMedia(input, key) {
+            if (input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    db[key] = e.target.result;
+                    localStorage.setItem(DB_KEY, JSON.stringify(db));
+                    alert(key + " CARREGADO!");
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function triggerGoldSweeps() {
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 400]);
+            const waves = [document.getElementById('r1'), document.getElementById('r2'), document.getElementById('r3')];
+            waves.forEach((w, i) => {
+                w.style.animation = 'none'; void w.offsetWidth;
+                w.style.animation = `sweep 1.2s ease-in-out ${i * 0.2}s forwards`;
+            });
+        }
+
+        function startArena() {
+            triggerGoldSweeps();
+            setTimeout(() => {
+                document.getElementById('setup-screen').style.display = 'none';
+                document.getElementById('main-game').style.display = 'flex';
+                
+                const va = document.getElementById('vid-a');
+                const vb = document.getElementById('vid-b');
+                if(db.crowdVid) { va.src = db.crowdVid; vb.src = db.crowdVid; va.play(); vb.play(); }
+                
+                initBoard();
+            }, 1500);
+        }
+
+        function initBoard() {
+            boardState = Array(8).fill(null).map(() => Array(8).fill(null));
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if ((r + c) % 2 !== 0) {
+                        if (r < 3) boardState[r][c] = { p: 'p2', k: false };
+                        if (r > 4) boardState[r][c] = { p: 'p1', k: false };
+                    }
+                }
+            }
+            render();
+        }
+
+        function render() {
+            const b = document.getElementById('board');
+            b.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    sq.className = `square ${(r+c)%2===0?'light':'dark'}`;
+                    const data = boardState[r][c];
+                    if (data) {
+                        const p = document.createElement('div');
+                        p.className = `piece ${data.p} ${data.k?'king':''}`;
+                        const img = data.p === 'p1' ? db.p1Img : db.p2Img;
+                        if (img) p.style.backgroundImage = `url('${img}')`;
+                        if (selected && selected.r === r && selected.c === c) p.style.transform = "scale(1.15)";
+                        sq.appendChild(p);
+                    }
+                    sq.onclick = () => handleClick(r, c);
+                    b.appendChild(sq);
+                }
+            }
+            document.getElementById('turn-txt').innerText = turn === 'p1' ? "TURNO: SR. JOSÉ" : "TURNO: ESPOSA";
+        }
+
+        function handleClick(r, c) {
+            if (isLocked) return;
+            const piece = boardState[r][c];
+            if (selected) {
+                if (executeMove(selected.r, selected.c, r, c)) {
+                    selected = null; render();
+                } else { selected = null; render(); }
+            } else if (piece && piece.p === turn) {
+                selected = { r, c }; render();
+            }
+        }
+
+        function executeMove(fr, fc, tr, tc) {
+            const p = boardState[fr][fc];
+            const dr = tr - fr; const dc = tc - fc;
+            const absDr = Math.abs(dr);
+            if (boardState[tr][tc] || absDr !== Math.abs(dc)) return false;
+
+            if (absDr === 1) {
+                if (!p.k) {
+                    if (p.p === 'p1' && dr > 0) return false;
+                    if (p.p === 'p2' && dr < 0) return false;
+                }
+                return finalize(p, fr, fc, tr, tc);
+            }
+            if (absDr === 2) {
+                const mR = fr + (dr/2); const mC = fc + (dc/2);
+                const mP = boardState[mR][mC];
+                if (mP && mP.p !== p.p) {
+                    boardState[mR][mC] = null;
+                    triggerCelebration(p.p);
+                    return finalize(p, fr, fc, tr, tc);
+                }
+            }
+            return false;
+        }
+
+        function finalize(p, fr, fc, tr, tc) {
+            boardState[tr][tc] = p; boardState[fr][fc] = null;
+            if ((p.p === 'p1' && tr === 0) || (p.p === 'p2' && tr === 7)) p.k = true;
+            turn = turn === 'p1' ? 'p2' : 'p1';
+            return true;
+        }
+
+        function triggerCelebration(player) {
+            triggerGoldSweeps();
+            
+            // Ativa Telão da Torcida
+            const bleacher = player === 'p1' ? document.getElementById('bleacher-a') : document.getElementById('bleacher-b');
+            const vid = player === 'p1' ? document.getElementById('vid-a') : document.getElementById('vid-b');
+            
+            bleacher.classList.add('active');
+            vid.muted = false;
+
+            // Overlay de Humilhação
+            const goalVid = player === 'p1' ? db.p1Vid : db.p2Vid;
+            if (goalVid) {
+                const overlay = document.getElementById('celebration-overlay');
+                const cVid = document.getElementById('celebration-video');
+                overlay.style.display = 'flex';
+                cVid.src = goalVid;
+                cVid.play();
+                setTimeout(() => { 
+                    overlay.style.display = 'none'; 
+                    cVid.pause(); 
+                    bleacher.classList.remove('active');
+                    vid.muted = true;
+                }, 4500);
+            }
+        }
+
+        function toggleLock() {
+            isLocked = !isLocked;
+            document.getElementById('lock-icon').innerText = isLocked ? '🔒' : '🔓';
+        }
+    </script>
+</body>
+</html>
